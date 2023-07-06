@@ -11,24 +11,28 @@ pub fn build(b: *std.build.Builder) void {
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
     const mode = b.standardReleaseOptions();
 
-    const exe = b.addExecutable("ml-zig", "src/main.zig");
-    exe.setTarget(target);
-    exe.setBuildMode(mode);
-    exe.install();
+    const twice = b.addExecutable("twice", "src/twice.zig");
+    twice.setTarget(target);
+    twice.setBuildMode(mode);
+    twice.install();
 
-    const run_cmd = exe.run();
-    run_cmd.step.dependOn(b.getInstallStep());
-    if (b.args) |args| {
-        run_cmd.addArgs(args);
-    }
+    const gates = b.addExecutable("gates", "src/gates.zig");
+    gates.setTarget(target);
+    gates.setBuildMode(mode);
+    gates.install();
 
-    const run_step = b.step("run", "Run the app");
-    run_step.dependOn(&run_cmd.step);
+    const xor = b.addExecutable("xor", "src/xor.zig");
+    xor.setTarget(target);
+    xor.setBuildMode(mode);
+    xor.install();
 
-    const exe_tests = b.addTest("src/main.zig");
-    exe_tests.setTarget(target);
-    exe_tests.setBuildMode(mode);
+    const twice_step = b.step("twice", "Run the twice app");
+    if (b.args) |args| twice.run().addArgs(args);
+    twice_step.dependOn(&twice.run().step);
 
-    const test_step = b.step("test", "Run unit tests");
-    test_step.dependOn(&exe_tests.step);
+    const gates_step = b.step("gates", "Run the gates app");
+    gates_step.dependOn(&gates.run().step);
+
+    const xor_step = b.step("xor", "Run the xor app");
+    xor_step.dependOn(&xor.run().step);
 }
