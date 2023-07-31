@@ -26,10 +26,15 @@ pub fn build(b: *std.build.Builder) void {
     xor.setBuildMode(mode);
     xor.install();
 
-    const nn = b.addExecutable("nn", "src/nn_main.zig");
-    nn.setTarget(target);
-    nn.setBuildMode(mode);
-    nn.install();
+    const nn_xor = b.addExecutable("nn_xor", "src/nn_xor.zig");
+    nn_xor.setTarget(target);
+    nn_xor.setBuildMode(mode);
+    nn_xor.install();
+
+    const nn_adder = b.addExecutable("nn_adder", "src/nn_adder.zig");
+    nn_adder.setTarget(target);
+    nn_adder.setBuildMode(mode);
+    nn_adder.install();
 
     const twice_step = b.step("twice", "Run the twice app");
     if (b.args) |args| twice.run().addArgs(args);
@@ -41,6 +46,9 @@ pub fn build(b: *std.build.Builder) void {
     const xor_step = b.step("xor", "Run the xor app");
     xor_step.dependOn(&xor.run().step);
 
-    const nn_step = b.step("nn_main", "Run the xor app");
-    nn_step.dependOn(&nn.run().step);
+    const nn_xor_step = b.step("nn_xor", "Run the nn xor app");
+    nn_xor_step.dependOn(&nn_xor.run().step);
+
+    const nn_adder_step = b.step("nn_adder", "Run the nn adder app");
+    nn_adder_step.dependOn(&nn_adder.run().step);
 }

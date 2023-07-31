@@ -181,6 +181,17 @@ pub fn nn_rand(model: NN, low: f32, high: f32) void {
         mat_rand(model.bs[i], low, high);
     }
 }
+
+pub fn nn_zero(model: NN) void {
+    var i: usize = 0;
+    while (i < model.count) : (i += 1) {
+        mat_fill(model.ws[i], 0);
+        mat_fill(model.bs[i], 0);
+        mat_fill(model.as[i], 0);
+    }
+    mat_fill(model.as[model.count], 0);
+}
+
 pub fn nn_forward(model: NN) void {
     var i: usize = 0;
     while (i < model.count) : (i += 1) {
@@ -237,6 +248,71 @@ pub fn nn_finite_diff(model: NN, gradient: NN, eps: f32, ti: Mat, to: Mat) void 
                 mat_put(model.bs[k], i, j, saved + eps);
                 mat_put(gradient.bs[k], i, j, (nn_cost(model, ti, to) - cost) / eps);
                 mat_put(model.bs[k], i, j, saved);
+            }
+        }
+    }
+}
+
+pub fn nn_backprop(model: NN, gradient: NN, ti: Mat, to: Mat) void {
+    std.debug.assert(ti.rows == to.rows);
+    std.debug.assert(nn_output(model).cols == to.cols);
+
+    const n: usize = ti.rows;
+    nn_zero(gradient);
+
+    // i - current sample
+    // l - current layer
+    // j - current activation
+    // k - previous activation
+    var i: usize = 0;
+    while (i < n) : (i += 1) {
+        mat_copy(nn_input(model), mat_row(ti, i));
+        nn_forward(model);
+
+        var l: usize = 0;
+        while (l < model.count) : (l += 1) {
+            mat_fill(gradient.as[l], 0);
+        }
+
+        var j: usize = 0;
+        while (j < to.cols) : (j += 1) {
+            mat_put(nn_output(gradient), 0, j, mat_get(nn_output(model), 0, j) - mat_get(to, i, j));
+        }
+
+        l = model.count;
+        while (l > 0) : (l -= 1) {
+            j = 0;
+            while (j < model.as[l].cols) : (j += 1) {
+                var a: f32 = mat_get(model.as[l], 0, j);
+                var da: f32 = mat_get(gradient.as[l], 0, j);
+                mat_put(gradient.bs[l - 1], 0, j, mat_get(gradient.bs[l - 1], 0, j) + 2 * da * a * (1 - a));
+                var k: usize = 0;
+                while (k < model.as[l - 1].cols) : (k += 1) {
+                    // j - weight matrix col
+                    // k = weigth matrix row
+                    var pa: f32 = mat_get(model.as[l - 1], 0, k);
+                    var w: f32 = mat_get(model.ws[l - 1], k, j);
+                    mat_put(gradient.ws[l - 1], k, j, mat_get(gradient.ws[l - 1], k, j) + 2 * da * a * (1 - a) * pa);
+                    mat_put(gradient.as[l - 1], 0, k, mat_get(gradient.as[l - 1], 0, k) + 2 * da * a * (1 - a) * w);
+                }
+            }
+        }
+    }
+
+    i = 0;
+    while (i < gradient.count) : (i += 1) {
+        var j: usize = 0;
+        while (j < gradient.ws[i].rows) : (j += 1) {
+            var k: usize = 0;
+            while (k < gradient.ws[i].cols) : (k += 1) {
+                mat_put(gradient.ws[i], j, k, mat_get(gradient.ws[i], j, k) / @intToFloat(f32, n));
+            }
+        }
+        j = 0;
+        while (j < gradient.bs[i].rows) : (j += 1) {
+            var k: usize = 0;
+            while (k < gradient.bs[i].cols) : (k += 1) {
+                mat_put(gradient.bs[i], j, k, mat_get(gradient.bs[i], j, k) / @intToFloat(f32, n));
             }
         }
     }

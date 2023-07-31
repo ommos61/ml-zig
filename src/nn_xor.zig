@@ -11,6 +11,7 @@ const nn_alloc = nn.nn_alloc;
 const nn_rand = nn.nn_rand;
 const nn_cost = nn.nn_cost;
 const nn_finite_diff = nn.nn_finite_diff;
+const nn_backprop = nn.nn_backprop;
 const nn_learn = nn.nn_learn;
 const nn_forward = nn.nn_forward;
 const nn_input = nn.nn_input;
@@ -43,17 +44,16 @@ pub fn main() !void {
     var gradient: NN = try nn_alloc(&arch, arch.len);
     nn_rand(model, 0, 1);
 
-    const eps: f32 = 1e-1;
-    const rate: f32 = 1e-1;
+    const rate: f32 = 1;
 
     std.debug.print("--------------------------\n", .{});
     //   nn_print(model, "xor_model");
-    const iter_count: usize = 100 * 1000;
+    const iter_count: usize = 50 * 1000;
     std.debug.print("Running {d} iterations...\n", .{iter_count});
     std.debug.print("Cost = {d:.6}\n", .{nn_cost(model, ti, to)});
     var i: usize = 0;
     while (i < iter_count) : (i += 1) {
-        nn_finite_diff(model, gradient, eps, ti, to);
+        nn_backprop(model, gradient, ti, to);
         nn_learn(model, gradient, rate);
         //        nn_print(model, "xor_model");
     }
